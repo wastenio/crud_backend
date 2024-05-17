@@ -1,7 +1,7 @@
 // Nome: Wastenio da Silva Rocha
 //Matricula: 01517377
 
-import { collection, addDoc, doc, getDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, getDocs, updateDoc, deleteDoc } from "firebase/firestore";
 import { database } from "../../services/firebase";
 const dbInstance = collection(database, "usuarios");
 
@@ -11,7 +11,11 @@ export default async function handler(req, res) {
     console.log("", id);
 
     if (id === undefined) {
-      // const usuarios = [{ id: 1, nome: "teste", email: "" }];
+      const usuarios = await getDocs(dbInstance).then((data) => {
+        return data.docs.map((doc) => {
+          return { ...doc.data(), id: doc.id };
+        });
+      });
 
       res.status(200).json(usuarios);
     } else {
@@ -51,15 +55,20 @@ export default async function handler(req, res) {
   if (req.method === "PUT") {
     const update_usuario = req.body;
 
-    if (valid_usuario === undefined) {
-      res.status(404).json({});
+    if(update_usuario.nome === undefined || update_usuario.nome === ""){
+      res.status(402).json({ message: "nome é obrigatorio!" });
     }
 
-    const runCreat = await updateUsuario.run(
-      update_usuario.nome,
-      update_usuario.email,
-      update_usuario.id
-    );
+    if(update_usuario.email === undefined || update_usuario.email === ""){
+      res.status(402).json({ message: "email é obrigatorio!" });
+    }
+
+    const valid_usuario = doc(database, "usuarios", update_usuario.id);
+
+    await updateDoc(valid_usuario, {
+      nome: update_usuario.nome,
+      email: update_usuario.email,
+    });
 
     res.status(200).json({});
   }
@@ -67,18 +76,9 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     const ID = req.body.id;
 
-    const valid_usuario = await db.get("SELECT * from Usuarios WHERE id = ?", [
-      ID,
-    ]);
-    if (valid_usuario === undefined) {
-      res.status(404).json({});
-    }
+    const valid_usuario = doc(database, "usuarios", ID);
 
-    const deleteUsuario = await db.prepare(
-      "DELETE FROM Usuarios WHERE id = ?;"
-    );
-
-    const delete_Usuario = await deleteUsuario.run(ID);
+    await deleteDoc(valid_usuario);
 
     res.status(201).json({});
   }
